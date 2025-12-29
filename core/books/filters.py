@@ -19,7 +19,7 @@ class BookFilter(filters.FilterSet):
 
     def filter_structured(self, queryset, name, value):
 
-        queryset = Books.objects.all()
+        queryset = Books.objects.filter(is_deleted=False)
         request = self.request
 
         fields_param = request.query_params.get("filter", "")

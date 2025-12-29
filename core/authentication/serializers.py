@@ -2,7 +2,7 @@ from authentication.models import User
 from rest_framework import serializers
 from django.db import models
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenBlacklistSerializer
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
@@ -14,7 +14,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
 
     def validate_role(self, value):
-        if value not in ['regular_user', 'admin']:
+        if value not in ['user', 'admin']:
             raise serializers.ValidationError()
         return value
 
@@ -37,8 +37,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        return super().get_token(user)
-    
+        token = super().get_token(user)
+        token['role'] = user.role
+        return token
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -3,10 +3,14 @@ from authentication.serializers import UserRegistrationSerializer, UserLoginSeri
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView
 from rest_framework.response import Response
 from .serializers import ForgotPasswordSerializer , ResetPasswordSerializer
 from django.core.mail import send_mail
+from rest_framework.permissions import IsAuthenticated
+
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -15,40 +19,25 @@ class RegisterView(generics.CreateAPIView):
 
         user = serializer.save()
         print(f"{user} registration succesfull!!")
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "user_updates",
+                {
+                    "type": "send_notification", 
+                    "message": {
+                        "event": "NEW USER REGISTERED",
+                        "username": f"{user.first_name} {user.last_name}",
+                        "email": user.email,
+                        "role": user.role,
+                        "timestamp": "2025-12-24"
+                    }
+                }
+            )
+        except Exception as e:
+            print(f"WebSocket Notification Failed: {e}")
         return user
-    
-# class LoginView(APIView):
-#     serializer_class = UserLoginSerializer
-
-#     def post(self, request, *args, **kwargs):
-#         print(request.data)
-#         # serializer = self.get_serializer(data=request.data)
-#         serializer = UserLoginSerializer(data=request.data)
-#         if not serializer.is_valid():
-#             print(serializer.errors)
-#             print("not valid")
-#             # return Response(serializer.data, status=status.HTTP_201_CREATED)
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-#         email = serializer.validated_data['email']
-#         password = serializer.validated_data['password']
-#         # print(email, password)
-#         user = authenticate(request, email=email, password=password)
-#         print(user)
-
-#         if user is not None:
-#             refresh = RefreshToken.for_user(user)
-
-#             return Response({
-#                 "message": "Login successful!!",
-#                 'email': user.email,
-#                 'refresh': str(refresh),
-#                 'access': str(refresh.access_token),
-#             }, status=status.HTTP_200_OK)
-#         else:
-#             return Response({
-#                 "detail": "Invalid Credentials..!!"
-#             }, status=status.HTTP_401_UNAUTHORIZED)
+ 
 class LoginView(TokenObtainPairView):
     serializer_class = UserLoginSerializer
 
@@ -90,3 +79,4 @@ class ResetPasswordAPIView(APIView):
             return Response({"message": "Password reset successful"}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

@@ -36,11 +36,11 @@ class CustomUserManager(BaseUserManager):
         )
 
 class User(AbstractUser):
-    REGULAR_USER = 'regular_user'
+    USER = 'user'
     ADMINISTRATOR = 'admin'
 
     ROLE_CHOICES = [
-        (REGULAR_USER, 'Regular User'),
+        (USER, 'User'),
         (ADMINISTRATOR, 'Admin')
     ]
     GENDER_CHOICES = [

@@ -7,7 +7,6 @@ from books.filters import BookFilter
 from books.pagination import BookPagination
 from authentication.permissions import IsAdminOrReadOnly
 
-
 class BooksViewSet(viewsets.ModelViewSet):
     serializer_class = BooksSerializer
     permission_classes = [IsAdminOrReadOnly]

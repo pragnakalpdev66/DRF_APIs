@@ -13,9 +13,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 from decouple import config
+# import os
+
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# MEDIA_URL = '/media/'
 # import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -37,11 +41,13 @@ ALLOWED_HOSTS = [
     'lacerated-aletha-paleogenetic.ngrok-free.dev',
     'nonopprobrious-stealthfully-mekhi.ngrok-free.dev',
     'localhost:5173',
+    '127.0.0.1','localhost'
 ]
 
 CORS_ALLOWED_ORIGINS  = [
     'http://lacerated-aletha-paleogenetic.ngrok-free.dev',
     'http://nonopprobrious-stealthfully-mekhi.ngrok-free.dev',
+    'https://nonopprobrious-stealthfully-mekhi.ngrok-free.dev',
     'http://localhost:5173',
 ]
 
@@ -57,20 +63,38 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',
+        'anon': '100/day',
+        'buy_product': '5/min',
+    }
 }
 
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'CHECK_REVOCATION_FOR_ACCESS_TOKEN': True, 
+    
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    
     'USER_ID_FIELD': 'email',
     'USERNAME_FIELD': 'email',
     'TOKEN_OBTAIN_SERIALIZER': 'authentication.serializers.LoginSerializer',
+    # 'TOKEN_'
 }
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -84,6 +108,7 @@ INSTALLED_APPS = [
     'authentication',
     'products',
     'books',
+    'rest_framework_simplejwt.token_blacklist',
 ]
             
 AUTH_USER_MODEL = 'authentication.User'
@@ -104,6 +129,17 @@ ROOT_URLCONF = 'core.urls'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'noreply@example.com'
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'rest_api',
+        'TIMEOUT': 300,
+    }
+}
 
 
 TEMPLATES = [
@@ -122,8 +158,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+# WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -186,3 +228,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# class UserLoginSerializer(TokenObtainPairSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         return super().get_token(user)
+    
+# class LoginView(TokenObtainPairView):
+#     serializer_class = UserLoginSerializer
